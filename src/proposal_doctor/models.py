@@ -20,6 +20,8 @@ LensName = Literal[
 Severity = Literal["low", "medium", "high"]
 SourceType = Literal["file", "folder"]
 OutputLanguage = Literal["en", "ja"]
+WebSearchMode = Literal["disabled", "cached", "live"]
+WebSearchSetting = Literal["lens", "disabled", "cached", "live"]
 
 
 class ReviewLens(BaseModel):
@@ -35,11 +37,18 @@ class ReviewFinding(BaseModel):
     recommendation: str
 
 
+class ReviewSource(BaseModel):
+    title: str
+    url: str
+    relevance: str
+
+
 class LensReview(BaseModel):
     lens: LensName
     summary: str
     findings: list[ReviewFinding] = Field(default_factory=list)
     questions: list[str] = Field(default_factory=list)
+    external_sources: list[ReviewSource] = Field(default_factory=list)
 
 
 class ProposalReviewReport(BaseModel):
@@ -48,6 +57,7 @@ class ProposalReviewReport(BaseModel):
     sources: list[str] = Field(default_factory=list)
     audience: str
     language: OutputLanguage = "en"
+    web_search: WebSearchSetting = "lens"
     overall_assessment: str
     lens_reviews: list[LensReview]
     priority_fixes: list[str]
@@ -57,5 +67,6 @@ class ProposalReviewReport(BaseModel):
 class ProposalDoctorConfig(BaseModel):
     audience: str = "enterprise buyer"
     language: OutputLanguage = "en"
+    web_search: WebSearchSetting = "lens"
     repo: str = "."
     max_parallel: int = 10

@@ -22,6 +22,7 @@ async def review_proposal(path: Path, config: ProposalDoctorConfig) -> ProposalR
         source_type=source_type,
         audience=config.audience,
         language=config.language,
+        web_search=config.web_search,
         lenses=DEFAULT_LENSES,
         repo=config.repo,
         max_parallel=config.max_parallel,
@@ -35,6 +36,7 @@ async def review_proposal(path: Path, config: ProposalDoctorConfig) -> ProposalR
         sources=[str(source) for source in sources],
         audience=config.audience,
         language=config.language,
+        web_search=config.web_search,
         overall_assessment=_overall_assessment(lens_reviews, config.language),
         lens_reviews=list(lens_reviews),
         priority_fixes=priority_fixes,
@@ -77,6 +79,7 @@ def _render_markdown_en(report: ProposalReviewReport) -> str:
         f"Source: `{report.source}`",
         f"Source type: {report.source_type}",
         f"Audience: {report.audience}",
+        f"Web search: {report.web_search}",
         "",
         "## Overall Assessment",
         "",
@@ -107,6 +110,9 @@ def _render_markdown_en(report: ProposalReviewReport) -> str:
         if lens.questions:
             lines.extend(["Questions to answer:", ""])
             lines.extend(f"- {question}" for question in lens.questions)
+        if lens.external_sources:
+            lines.extend(["", "External sources:", ""])
+            lines.extend(_external_source_lines(lens))
 
     lines.extend(["", "## Decision-Maker Summary", "", report.decision_maker_summary, ""])
     return "\n".join(lines)
@@ -120,6 +126,7 @@ def _render_markdown_ja(report: ProposalReviewReport) -> str:
         f"対象: `{report.source}`",
         f"対象種別: {report.source_type}",
         f"想定読者: {report.audience}",
+        f"Web検索: {report.web_search}",
         "",
         "## 総合評価",
         "",
@@ -151,9 +158,19 @@ def _render_markdown_ja(report: ProposalReviewReport) -> str:
         if lens.questions:
             lines.extend(["回答すべき質問:", ""])
             lines.extend(f"- {question}" for question in lens.questions)
+        if lens.external_sources:
+            lines.extend(["", "外部ソース:", ""])
+            lines.extend(_external_source_lines(lens))
 
     lines.extend(["", "## 意思決定者向けサマリー", "", report.decision_maker_summary, ""])
     return "\n".join(lines)
+
+
+def _external_source_lines(lens: LensReview) -> list[str]:
+    return [
+        f"- {source.title} ({source.url}): {source.relevance}"
+        for source in lens.external_sources
+    ]
 
 
 def _priority_fixes(lens_reviews: list[LensReview]) -> list[str]:

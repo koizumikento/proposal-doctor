@@ -48,6 +48,13 @@ proposal-doctor review proposal.md --out review.md
 proposal-doctor review proposal.md --language ja --out-dir .work
 ```
 
+レンズ別の Web 検索ポリシーを上書き:
+
+```bash
+proposal-doctor review proposal.md --web-search disabled
+proposal-doctor review proposal.md --web-search live
+```
+
 Codex の作業ディレクトリを指定:
 
 ```bash
@@ -72,9 +79,9 @@ proposal-doctor-mcp
 
 MCP server は、単一ファイル向けの `review_proposal_file`、フォルダ向けの
 `review_proposal_folder`、ファイル/フォルダ両対応の `review_proposal_path`
-を公開します。各 MCP tool は `language` に `en` または `ja` を指定できます。
-フォルダレビューでは `.md`, `.markdown`, `.txt` を再帰的に読み、隠しファイルと
-隠しフォルダは無視します。
+を公開します。各 MCP tool は `language` に `en` または `ja`、`web_search` に
+`lens`, `disabled`, `cached`, `live` を指定できます。フォルダレビューでは
+`.md`, `.markdown`, `.txt` を再帰的に読み、隠しファイルと隠しフォルダは無視します。
 
 ## 仕様
 
@@ -94,6 +101,11 @@ MCP server は、単一ファイル向けの `review_proposal_file`、フォル�
 - `technical_feasibility`: アーキテクチャ、統合、データ、セキュリティ前提を見る
 - `commercial_terms_risk`: スコープ、支払、更新、SLA、受入、責任範囲を見る
 - `narrative_coherence`: 論理展開、重複、矛盾、読みやすさ、要約の強さを見る
+
+デフォルトでは Web 検索はレンズ別に制御されます。競合比較と調達要件適合は
+live Web 検索、財務と技術実現性は cached Web 検索、それ以外のレンズは Web 検索
+無効です。外部 Web 情報がレビュー判断に影響した場合は、レポートの
+`external_sources` に出典を残します。
 
 ## 実行モデル
 

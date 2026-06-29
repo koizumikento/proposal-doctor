@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 
 from proposal_doctor.core import render_markdown, review_proposal
-from proposal_doctor.models import OutputLanguage, ProposalDoctorConfig
+from proposal_doctor.models import OutputLanguage, ProposalDoctorConfig, WebSearchSetting
 
 app = typer.Typer(help="Review proposal drafts through multiple business lenses.")
 console = Console()
@@ -27,6 +27,7 @@ def review(
     ],
     audience: Annotated[str, typer.Option("--audience", "-a")] = "enterprise buyer",
     language: Annotated[OutputLanguage, typer.Option("--language", "-l")] = "en",
+    web_search: Annotated[WebSearchSetting, typer.Option("--web-search")] = "lens",
     out: Annotated[Path | None, typer.Option("--out", "-o")] = None,
     out_dir: Annotated[Path | None, typer.Option("--out-dir")] = None,
     output_format: Annotated[Literal["markdown", "json"], typer.Option("--format")] = "markdown",
@@ -40,6 +41,7 @@ def review(
     config = ProposalDoctorConfig(
         audience=audience,
         language=language,
+        web_search=web_search,
         repo=str(repo),
         max_parallel=max_parallel,
     )

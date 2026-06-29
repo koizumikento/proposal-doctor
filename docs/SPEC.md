@@ -42,6 +42,7 @@ proposal-doctor review proposal.md
 proposal-doctor review ./proposal-folder
 proposal-doctor review proposal.md --audience "enterprise CFO"
 proposal-doctor review proposal.md --language ja
+proposal-doctor review proposal.md --web-search disabled
 proposal-doctor review proposal.md --format json
 proposal-doctor review proposal.md --out review.md
 proposal-doctor review proposal.md --out-dir .work
@@ -61,6 +62,7 @@ Inputs:
 - `path`: local proposal file or folder path
 - `audience`: intended buyer or reviewer audience
 - `language`: output language for human-readable review fields, `en` or `ja`
+- `web_search`: web search policy, `lens`, `disabled`, `cached`, or `live`
 - `repo`: local working directory used by Codex
 - `max_parallel`: maximum concurrent lens reviews, default `10`
 
@@ -84,6 +86,31 @@ Proposal Doctor uses ten default lenses.
 | `technical_feasibility` | 技術実現性視点。アーキテクチャ、統合、データ、セキュリティ、非機能要件、技術前提を確認する。 |
 | `commercial_terms_risk` | 商務条件リスク視点。スコープ、支払、更新、SLA、サポート、受入、責任範囲の曖昧さを確認する。 |
 | `narrative_coherence` | ストーリー整合性視点。エグゼクティブサマリー、論理展開、重複、矛盾、読みやすさを確認する。 |
+
+## Web Search Policy
+
+The default `web_search` setting is `lens`, which applies a per-lens Codex web
+search mode.
+
+| Lens | Web search |
+| --- | --- |
+| `customer` | `disabled` |
+| `decision_maker` | `disabled` |
+| `finance` | `cached` |
+| `execution_risk` | `disabled` |
+| `competitive` | `live` |
+| `procurement_compliance` | `live` |
+| `stakeholder_adoption` | `disabled` |
+| `technical_feasibility` | `cached` |
+| `commercial_terms_risk` | `disabled` |
+| `narrative_coherence` | `disabled` |
+
+Users can override this policy for all lenses with `--web-search disabled`,
+`--web-search cached`, or `--web-search live`.
+
+When web search is enabled for a lens, the prompt requires Codex to treat web
+content as untrusted, distinguish proposal evidence from external evidence, and
+record any materially used external web source in `external_sources`.
 
 ### Prompt Design Principles
 
@@ -115,7 +142,8 @@ flowchart TD
     B3 --> C["Build ProposalDoctorConfig"]
     B4 --> C
     C --> D["Select default review lenses"]
-    D --> G["Run Codex SDK lens reviews with proposal path"]
+    D --> F["Resolve web search mode per lens"]
+    F --> G["Run Codex SDK lens reviews with proposal path"]
     G --> H["Parallel lens review tasks"]
 
     H --> I["Join LensReview results"]
@@ -142,7 +170,7 @@ sequenceDiagram
 
     Flow->>SDK: Open one AsyncCodex session
     Flow->>SDK: Start read-only ephemeral thread per lens
-    SDK->>Codex: thread_start(sandbox=read_only, cwd=repo)
+    SDK->>Codex: thread_start(sandbox=read_only, cwd=repo, web_search=lens_mode)
     Flow->>SDK: Run lens-specific prompts with proposal path
     SDK->>Codex: Execute parallel proposal reviews
     Codex-->>SDK: final_response
@@ -156,6 +184,7 @@ sequenceDiagram
 
 - `audience`: target reader, default `enterprise buyer`
 - `language`: output language, `en` or `ja`, default `en`
+- `web_search`: web search policy, default `lens`
 - `repo`: working directory for Codex
 - `max_parallel`: review concurrency limit, default `10`
 
@@ -165,6 +194,7 @@ sequenceDiagram
 - `summary`: short lens-specific assessment
 - `findings`: structured issues found for that lens
 - `questions`: questions the proposal owner should answer
+- `external_sources`: external web sources that materially affected this lens review
 
 ### `ReviewFinding`
 
@@ -181,6 +211,7 @@ sequenceDiagram
 - `sources`: reviewed file paths, including files discovered inside a folder
 - `audience`: intended audience
 - `language`: output language used for human-readable review text
+- `web_search`: requested web search policy
 - `overall_assessment`: high-level readiness statement
 - `lens_reviews`: all lens results
 - `priority_fixes`: top fixes to make before sending

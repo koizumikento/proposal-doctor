@@ -50,6 +50,13 @@ Write a Japanese report into a folder with an auto-generated file name:
 proposal-doctor review proposal.md --language ja --out-dir .work
 ```
 
+Override the default lens-specific web search policy:
+
+```bash
+proposal-doctor review proposal.md --web-search disabled
+proposal-doctor review proposal.md --web-search live
+```
+
 Set the Codex working directory:
 
 ```bash
@@ -75,9 +82,10 @@ proposal-doctor-mcp
 
 The MCP server exposes `review_proposal_file` for single files,
 `review_proposal_folder` for folders, and `review_proposal_path` for either.
-Each MCP review tool accepts `language` as `en` or `ja`. Folder reviews include
-`.md`, `.markdown`, and `.txt` files recursively while ignoring hidden files and
-hidden folders.
+Each MCP review tool accepts `language` as `en` or `ja` and `web_search` as
+`lens`, `disabled`, `cached`, or `live`. Folder reviews include `.md`,
+`.markdown`, and `.txt` files recursively while ignoring hidden files and hidden
+folders.
 
 ## Specification
 
@@ -98,6 +106,11 @@ The default flow reviews the proposal through ten lenses:
 - technical_feasibility: アーキテクチャ、統合、データ、セキュリティ前提を見る
 - commercial_terms_risk: スコープ、支払、更新、SLA、受入、責任範囲を見る
 - narrative_coherence: 論理展開、重複、矛盾、読みやすさ、要約の強さを見る
+
+By default, web search is controlled per lens. Competitive and procurement
+reviews use live web search, finance and technical feasibility use cached web
+search, and the remaining lenses keep web search disabled. When external web
+information materially affects a review, the report includes `external_sources`.
 
 ## Status
 
