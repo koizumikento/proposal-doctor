@@ -5,10 +5,8 @@
 Proposal Doctor is a focused local tool for reviewing proposal drafts before they
 are sent to customers, executives, or procurement teams.
 
-The tool runs a proposal through multiple business lenses, aggregates the
-findings, and returns a prioritized improvement report. It supports a safe local
-heuristic mode by default and an optional Codex-backed mode for deeper document
-review.
+The tool runs a proposal through multiple business lenses with Codex, aggregates
+the findings, and returns a prioritized improvement report.
 
 ## Target Users
 
@@ -41,21 +39,25 @@ review.
 
 ```bash
 proposal-doctor review proposal.md
+proposal-doctor review ./proposal-folder
 proposal-doctor review proposal.md --audience "enterprise CFO"
 proposal-doctor review proposal.md --format json
 proposal-doctor review proposal.md --out review.md
-proposal-doctor review proposal.md --use-codex --repo .
+proposal-doctor review proposal.md --repo .
 ```
 
 ### MCP
 
-The MCP server exposes a `review_proposal_file` tool.
+The MCP server exposes these review tools:
+
+- `review_proposal_file`: review one local proposal file
+- `review_proposal_path`: review either one local file or one local folder
+- `review_proposal_folder`: review one local folder of proposal files
 
 Inputs:
 
-- `path`: local proposal file path
+- `path`: local proposal file or folder path
 - `audience`: intended buyer or reviewer audience
-- `use_codex`: whether to ask Codex SDK for deeper lens reviews
 - `repo`: local working directory used by Codex
 - `max_parallel`: maximum concurrent lens reviews
 
@@ -65,30 +67,53 @@ Output:
 
 ## Review Lenses
 
-Proposal Doctor uses five default lenses.
+Proposal Doctor uses ten default lenses.
 
 | Lens | Purpose |
 | --- | --- |
-| `customer` | 顧客視点。課題、導入価値、緊急度、信頼性を確認する。 |
-| `decision_maker` | 決裁者視点。承認判断、事業価値、リスク、意思決定材料を確認する。 |
-| `finance` | 財務視点。価格、ROI、予算前提、回収期間、測定方法を確認する。 |
-| `execution_risk` | 実行リスク視点。体制、責任分界、スケジュール、依存関係を確認する。 |
-| `competitive` | 競合比較視点。代替案との差別化、比較軸、勝ち筋を確認する。 |
+| `customer` | 顧客視点。顧客課題、現状維持コスト、導入価値、緊急度、信頼性、顧客固有性を確認する。 |
+| `decision_maker` | 決裁者視点。承認依頼、戦略整合、意思決定基準、リスク、実行能力、次アクションを確認する。 |
+| `finance` | 財務視点。価格、総コスト、ROI、回収期間、前提、測定方法、商業リスクを確認する。 |
+| `execution_risk` | 実行リスク視点。体制、責任分界、スケジュール、依存関係、受入基準、導入失敗リスクを確認する。 |
+| `competitive` | 競合比較視点。代替案、差別化、比較軸、proof points、status quo への勝ち筋を確認する。 |
+| `procurement_compliance` | 調達要件適合視点。RFP/RFQ 要件、必須提出物、評価基準、例外、コンプライアンス対応を確認する。 |
+| `stakeholder_adoption` | ステークホルダー定着視点。利用者、運用担当、スポンサー、教育、変更管理、定着指標を確認する。 |
+| `technical_feasibility` | 技術実現性視点。アーキテクチャ、統合、データ、セキュリティ、非機能要件、技術前提を確認する。 |
+| `commercial_terms_risk` | 商務条件リスク視点。スコープ、支払、更新、SLA、サポート、受入、責任範囲の曖昧さを確認する。 |
+| `narrative_coherence` | ストーリー整合性視点。エグゼクティブサマリー、論理展開、重複、矛盾、読みやすさを確認する。 |
+
+### Prompt Design Principles
+
+The Codex prompts use a strict review protocol based on common proposal and
+business-case review patterns:
+
+- Proposal evaluation should assess both the proposal and the offeror's ability
+  to perform successfully, with relative quality judged against stated factors
+  such as technical approach, price, past performance, and risk.
+- Business cases should compare options using costs, benefits, risks, strategic
+  fit, affordability, commercial viability, and management feasibility.
+- Strong proposal themes should connect customer pain, differentiators, benefits,
+  and proof points rather than relying on generic vendor claims.
+- Approval risk also comes from non-content issues: missing compliance mapping,
+  adoption friction, technical feasibility gaps, unclear commercial terms, and
+  incoherent narrative structure.
+
+Codex prompts therefore require evidence-based findings, severity calibration,
+actionable recommendations, no invented facts, and lens-specific review rubrics.
 
 ## Execution Flow
 
 ```mermaid
 flowchart TD
-    A["User runs CLI or MCP tool"] --> B["Load proposal file"]
-    B --> C["Build ProposalDoctorConfig"]
+    A["User runs CLI or MCP tool"] --> B["Load proposal path"]
+    B --> B2{"Path is folder?"}
+    B2 -- "false" --> B3["Resolve proposal file"]
+    B2 -- "true" --> B4["Collect supported proposal files"]
+    B3 --> C["Build ProposalDoctorConfig"]
+    B4 --> C
     C --> D["Select default review lenses"]
-    D --> E{"use_codex?"}
-
-    E -- "false" --> F["Run heuristic lens reviews"]
-    E -- "true" --> G["Run Codex SDK lens reviews"]
-
-    F --> H["Parallel lens review tasks"]
-    G --> H
+    D --> G["Run Codex SDK lens reviews with proposal path"]
+    G --> H["Parallel lens review tasks"]
 
     H --> I["Join LensReview results"]
     I --> J["Extract medium/high findings"]
@@ -115,7 +140,7 @@ sequenceDiagram
     Flow->>SDK: Open one AsyncCodex session
     Flow->>SDK: Start read-only ephemeral thread per lens
     SDK->>Codex: thread_start(sandbox=read_only, cwd=repo)
-    Flow->>SDK: Run lens-specific prompts concurrently
+    Flow->>SDK: Run lens-specific prompts with proposal path
     SDK->>Codex: Execute parallel proposal reviews
     Codex-->>SDK: final_response
     SDK-->>Flow: Review JSON or fallback text
@@ -127,7 +152,6 @@ sequenceDiagram
 ### `ProposalDoctorConfig`
 
 - `audience`: target reader, default `enterprise buyer`
-- `use_codex`: enables Codex SDK review path
 - `repo`: working directory for Codex
 - `max_parallel`: review concurrency limit
 
@@ -149,35 +173,21 @@ sequenceDiagram
 ### `ProposalReviewReport`
 
 - `source`: reviewed file path
+- `source_type`: `file` or `folder`
+- `sources`: reviewed file paths, including files discovered inside a folder
 - `audience`: intended audience
 - `overall_assessment`: high-level readiness statement
 - `lens_reviews`: all lens results
 - `priority_fixes`: top fixes to make before sending
 - `decision_maker_summary`: concise summary for a reviewer or manager
 
-## Operating Modes
+## Operating Model
 
-### Heuristic Mode
-
-Default mode. Runs local checks without model calls.
-
-Strengths:
-
-- Fast
-- Works offline after installation
-- Safe for smoke testing and baseline review
-
-Limitations:
-
-- Shallow
-- Pattern-based
-- Cannot reason deeply about the proposal's specific context
-
-### Codex Mode
-
-Enabled with `--use-codex`. Proposal Doctor opens one Codex SDK session, starts
-a read-only ephemeral thread for each review lens, and runs those lens reviews
-concurrently up to `max_parallel`.
+Proposal Doctor opens one Codex SDK session, starts a read-only ephemeral thread
+for each review lens, passes the proposal file or folder path in the prompt, and
+runs those lens reviews concurrently up to `max_parallel`. Proposal Doctor does
+not inline proposal contents into the Codex prompt before starting the review;
+the read-only Codex thread inspects the provided path.
 
 Strengths:
 
@@ -188,7 +198,6 @@ Strengths:
 Limitations:
 
 - Requires Codex login or configured Codex authentication
-- Slower than heuristic mode
 - Model output may need schema fallback handling
 
 ## Concurrency Model
@@ -196,9 +205,8 @@ Limitations:
 Proposal Doctor treats each review lens as an independent task. The flow can run
 lens reviews concurrently and join the results into one report.
 
-The current implementation uses `asyncio.gather` with a semaphore. In Codex mode,
-the gathered tasks call Codex SDK and each task owns one lens-specific Codex
-thread. In heuristic mode, the same concurrency boundary runs local checks.
+The current implementation uses `asyncio.gather` with a semaphore. The gathered
+tasks call Codex SDK and each task owns one lens-specific Codex thread.
 
 A future implementation can move the same shape into Pydantic Graph `map()` and
 `join()` nodes once the flow needs richer state transitions, retries, or partial
@@ -213,16 +221,29 @@ src/proposal_doctor/
   core.py         review orchestration and rendering
   models.py       Pydantic data models
   lenses.py       default review lenses
-  heuristic.py    local first-pass reviewer
   codex_client.py Codex SDK integration
 ```
 
+## Folder Input
+
+Folder input is an aggregate review of all supported proposal files in the
+folder. The current implementation recursively includes:
+
+- `.md`
+- `.markdown`
+- `.txt`
+
+Hidden files and files in hidden folders are ignored. Proposal Doctor passes the
+folder path to the read-only Codex thread instead of reading and inlining the
+file contents itself. The output remains one `ProposalReviewReport` with
+`source_type` set to `folder` and `sources` listing the included files.
+
 ## MVP Constraints
 
-- Proposal input is UTF-8 text or Markdown.
+- Proposal input is a UTF-8 text or Markdown file, or a folder containing UTF-8
+  text or Markdown files.
 - `.docx` and PDF parsing are intentionally out of scope for the first version.
-- Heuristic mode is not intended to be a complete proposal reviewer.
-- Codex mode starts read-only.
+- Codex review starts read-only.
 - The tool does not write edits back into the proposal draft.
 
 ## Future Extensions

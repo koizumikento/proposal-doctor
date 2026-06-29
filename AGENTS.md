@@ -4,7 +4,7 @@
 
 Proposal Doctor is a Python CLI and MCP tool for reviewing proposal drafts
 through multiple business lenses. Keep changes focused on that product shape:
-proposal review, structured findings, CLI/MCP access, and optional Codex SDK
+proposal review, structured findings, CLI/MCP access, and Codex SDK-backed
 review flows.
 
 ## Tooling
@@ -26,16 +26,12 @@ review flows.
 - Keep the CLI and MCP layers thin.
 - Put orchestration and report construction in `src/proposal_doctor/core.py`.
 - Put shared data contracts in `src/proposal_doctor/models.py`.
-- Keep local non-model review behavior in `src/proposal_doctor/heuristic.py`.
 - Keep Codex SDK integration isolated in `src/proposal_doctor/codex_client.py`.
-- Do not let Codex-backed review behavior leak into heuristic mode.
-- Preserve the default safe path: heuristic review should work without Codex
-  credentials or model access.
+- Keep lens definitions and review rubrics in `src/proposal_doctor/lenses.py`.
+- Proposal review is Codex-backed by default and requires Codex authentication.
 
 ## Codex SDK Rules
 
-- Codex mode must be opt-in through `--use-codex` or the MCP `use_codex`
-  argument.
 - Start Codex review threads in read-only mode unless a future feature
   explicitly needs writes.
 - Treat model output as untrusted. Validate it with Pydantic models and keep a
@@ -66,8 +62,8 @@ review flows.
   report rendering, or review orchestration.
 - Run `uv run --extra dev ruff check .` when changing Python code unless the
   dependency environment is unavailable.
-- If Codex SDK behavior changes, test the non-Codex path separately so the safe
-  default remains usable.
+- If Codex SDK behavior changes, test path resolution and prompt construction
+  separately from live Codex authentication.
 
 ## Scope Control
 

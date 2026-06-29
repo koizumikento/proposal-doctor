@@ -21,27 +21,33 @@ def main() -> None:
 
 @app.command()
 def review(
-    proposal: Annotated[Path, typer.Argument(help="Path to a UTF-8 proposal draft.")],
+    proposal: Annotated[
+        Path,
+        typer.Argument(help="Path to a UTF-8 proposal draft or a folder of proposal drafts."),
+    ],
     audience: Annotated[str, typer.Option("--audience", "-a")] = "enterprise buyer",
     out: Annotated[Path | None, typer.Option("--out", "-o")] = None,
     output_format: Annotated[Literal["markdown", "json"], typer.Option("--format")] = "markdown",
-    use_codex: Annotated[bool, typer.Option("--use-codex")] = False,
     repo: Annotated[Path, typer.Option("--repo")] = Path("."),
     max_parallel: Annotated[int, typer.Option("--max-parallel")] = 5,
 ) -> None:
-    """Review a proposal and print a prioritized improvement report."""
+    """Review a proposal file or folder and print a prioritized improvement report."""
     config = ProposalDoctorConfig(
         audience=audience,
-        use_codex=use_codex,
         repo=str(repo),
         max_parallel=max_parallel,
     )
-    report = asyncio.run(review_proposal(proposal, config))
+    try:
+        report = asyncio.run(review_proposal(proposal, config))
+    except (FileNotFoundError, UnicodeDecodeError, ValueError) as exc:
+        raise typer.BadParameter(str(exc), param_hint="proposal") from exc
     rendered = (
         report.model_dump_json(indent=2) if output_format == "json" else render_markdown(report)
     )
 
     if out:
         out.write_text(rendered, encoding="utf-8")
+    elif output_format == "json":
+        console.out(rendered)
     else:
-        console.print(rendered)
+        console.print(rendered, markup=False)
