@@ -19,6 +19,7 @@ LensName = Literal[
 ]
 Severity = Literal["low", "medium", "high"]
 SourceType = Literal["file", "folder"]
+OutputLanguage = Literal["en", "ja"]
 
 
 class ReviewLens(BaseModel):
@@ -46,6 +47,7 @@ class ProposalReviewReport(BaseModel):
     source_type: SourceType = "file"
     sources: list[str] = Field(default_factory=list)
     audience: str
+    language: OutputLanguage = "en"
     overall_assessment: str
     lens_reviews: list[LensReview]
     priority_fixes: list[str]
@@ -54,5 +56,6 @@ class ProposalReviewReport(BaseModel):
 
 class ProposalDoctorConfig(BaseModel):
     audience: str = "enterprise buyer"
+    language: OutputLanguage = "en"
     repo: str = "."
-    max_parallel: int = 5
+    max_parallel: int = 10

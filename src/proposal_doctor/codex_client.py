@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import json
 from pathlib import Path
 from typing import Any
 
-from proposal_doctor.models import LensReview, ReviewLens, SourceType
+from proposal_doctor.models import LensReview, OutputLanguage, ReviewLens, SourceType
 
 
 REVIEW_PROTOCOL = """Review protocol:
@@ -38,6 +39,7 @@ async def review_lenses_with_codex(
     proposal_path: Path,
     source_type: SourceType,
     audience: str,
+    language: OutputLanguage,
     lenses: tuple[ReviewLens, ...],
     repo: str,
     max_parallel: int,
@@ -58,6 +60,7 @@ async def review_lenses_with_codex(
                     proposal_path=proposal_path,
                     source_type=source_type,
                     audience=audience,
+                    language=language,
                     lens=lens,
                     repo=repo,
                 )
@@ -71,6 +74,7 @@ async def review_with_codex(
     audience: str,
     lens: ReviewLens,
     repo: str,
+    language: OutputLanguage = "en",
 ) -> LensReview:
     try:
         from openai_codex import AsyncCodex, Sandbox
@@ -83,6 +87,7 @@ async def review_with_codex(
             proposal_path=proposal_path,
             source_type=source_type,
             audience=audience,
+            language=language,
             lens=lens,
             repo=repo,
             sandbox_type=Sandbox,
@@ -94,6 +99,7 @@ async def _review_with_codex_client(
     proposal_path: Path,
     source_type: SourceType,
     audience: str,
+    language: OutputLanguage,
     lens: ReviewLens,
     repo: str,
     sandbox_type: Any | None = None,
@@ -105,6 +111,7 @@ async def _review_with_codex_client(
         proposal_path=proposal_path,
         source_type=source_type,
         audience=audience,
+        language=language,
         lens=lens,
     )
     thread = await codex.thread_start(
@@ -112,7 +119,7 @@ async def _review_with_codex_client(
         ephemeral=True,
         sandbox=sandbox_type.read_only,
     )
-    result = await thread.run(prompt, output_schema=LensReview.model_json_schema())
+    result = await thread.run(prompt, output_schema=_codex_output_schema())
 
     raw = result.final_response.strip()
     try:
@@ -130,12 +137,14 @@ def _build_prompt(
     proposal_path: Path,
     source_type: SourceType,
     audience: str,
+    language: OutputLanguage,
     lens: ReviewLens,
 ) -> str:
-    schema = json.dumps(LensReview.model_json_schema(), indent=2)
+    schema = json.dumps(_codex_output_schema(), indent=2)
     return f"""Review the proposal draft at this local path for the {lens.name} lens.
 
 Audience: {audience}
+{_language_instruction(language)}
 {REVIEW_PROTOCOL}
 
 Lens-specific rubric:
@@ -151,3 +160,36 @@ If the proposal path is a folder, inspect supported proposal files recursively:
 Return only JSON matching this schema:
 {schema}
 """
+
+
+def _language_instruction(language: OutputLanguage) -> str:
+    if language == "ja":
+        return (
+            "Response language: Japanese. Write summary, finding titles, rationales, "
+            "recommendations, and questions in Japanese. Keep JSON keys and enum values "
+            "exactly as specified by the schema."
+        )
+    return (
+        "Response language: English. Keep JSON keys and enum values exactly as specified "
+        "by the schema."
+    )
+
+
+def _codex_output_schema() -> dict[str, Any]:
+    schema = copy.deepcopy(LensReview.model_json_schema())
+    _make_schema_strict(schema)
+    return schema
+
+
+def _make_schema_strict(schema: dict[str, Any]) -> None:
+    if "properties" in schema:
+        schema["additionalProperties"] = False
+        schema["required"] = list(schema["properties"])
+
+    for value in schema.values():
+        if isinstance(value, dict):
+            _make_schema_strict(value)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    _make_schema_strict(item)

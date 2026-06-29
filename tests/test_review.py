@@ -3,6 +3,7 @@ import asyncio
 import pytest
 
 from proposal_doctor.codex_client import _build_prompt
+from proposal_doctor.cli import _output_path_for_dir
 from proposal_doctor.core import render_markdown, review_proposal
 from proposal_doctor.lenses import DEFAULT_LENSES
 from proposal_doctor.models import LensReview, ProposalDoctorConfig
@@ -128,10 +129,29 @@ def test_codex_lens_prompts_are_substantive() -> None:
 def test_codex_prompt_passes_path_and_review_protocol(tmp_path) -> None:
     proposal = tmp_path / "proposal.md"
     proposal.write_text("This body should not be in the prompt.", encoding="utf-8")
-    prompt = _build_prompt(proposal, "file", "enterprise CFO", DEFAULT_LENSES[0])
+    prompt = _build_prompt(proposal, "file", "enterprise CFO", "en", DEFAULT_LENSES[0])
 
     assert "Review protocol:" in prompt
+    assert "Response language: English" in prompt
     assert f"Proposal path: {proposal}" in prompt
     assert "Resolved proposal path:" in prompt
     assert "This body should not be in the prompt." not in prompt
     assert "Return only JSON matching this schema:" in prompt
+
+
+def test_codex_prompt_can_request_japanese_output(tmp_path) -> None:
+    proposal = tmp_path / "proposal.md"
+    proposal.write_text("Draft", encoding="utf-8")
+    prompt = _build_prompt(proposal, "file", "enterprise CFO", "ja", DEFAULT_LENSES[0])
+
+    assert "Response language: Japanese" in prompt
+    assert "Keep JSON keys and enum values exactly as specified" in prompt
+
+
+def test_out_dir_builds_language_specific_report_path(tmp_path) -> None:
+    proposal = tmp_path / "proposal.md"
+    out_dir = tmp_path / "work"
+
+    assert _output_path_for_dir(proposal, out_dir, "markdown", "ja") == (
+        out_dir / "proposal.review.ja.md"
+    )

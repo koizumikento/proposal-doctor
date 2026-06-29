@@ -42,6 +42,12 @@ proposal-doctor review ./proposals
 proposal-doctor review proposal.md --out review.md
 ```
 
+日本語レポートをフォルダへ自動ファイル名で書き出し:
+
+```bash
+proposal-doctor review proposal.md --language ja --out-dir .work
+```
+
 Codex の作業ディレクトリを指定:
 
 ```bash
@@ -66,8 +72,9 @@ proposal-doctor-mcp
 
 MCP server は、単一ファイル向けの `review_proposal_file`、フォルダ向けの
 `review_proposal_folder`、ファイル/フォルダ両対応の `review_proposal_path`
-を公開します。フォルダレビューでは `.md`, `.markdown`, `.txt` を再帰的に
-読み、隠しファイルと隠しフォルダは無視します。
+を公開します。各 MCP tool は `language` に `en` または `ja` を指定できます。
+フォルダレビューでは `.md`, `.markdown`, `.txt` を再帰的に読み、隠しファイルと
+隠しフォルダは無視します。
 
 ## 仕様
 

@@ -44,6 +44,12 @@ Write the report to a file:
 proposal-doctor review proposal.md --out review.md
 ```
 
+Write a Japanese report into a folder with an auto-generated file name:
+
+```bash
+proposal-doctor review proposal.md --language ja --out-dir .work
+```
+
 Set the Codex working directory:
 
 ```bash
@@ -69,8 +75,9 @@ proposal-doctor-mcp
 
 The MCP server exposes `review_proposal_file` for single files,
 `review_proposal_folder` for folders, and `review_proposal_path` for either.
-Folder reviews include `.md`, `.markdown`, and `.txt` files recursively while
-ignoring hidden files and hidden folders.
+Each MCP review tool accepts `language` as `en` or `ja`. Folder reviews include
+`.md`, `.markdown`, and `.txt` files recursively while ignoring hidden files and
+hidden folders.
 
 ## Specification
 

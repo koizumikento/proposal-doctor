@@ -41,8 +41,10 @@ the findings, and returns a prioritized improvement report.
 proposal-doctor review proposal.md
 proposal-doctor review ./proposal-folder
 proposal-doctor review proposal.md --audience "enterprise CFO"
+proposal-doctor review proposal.md --language ja
 proposal-doctor review proposal.md --format json
 proposal-doctor review proposal.md --out review.md
+proposal-doctor review proposal.md --out-dir .work
 proposal-doctor review proposal.md --repo .
 ```
 
@@ -58,8 +60,9 @@ Inputs:
 
 - `path`: local proposal file or folder path
 - `audience`: intended buyer or reviewer audience
+- `language`: output language for human-readable review fields, `en` or `ja`
 - `repo`: local working directory used by Codex
-- `max_parallel`: maximum concurrent lens reviews
+- `max_parallel`: maximum concurrent lens reviews, default `10`
 
 Output:
 
@@ -125,7 +128,7 @@ flowchart TD
     N -- "markdown" --> O["Render Markdown report"]
     N -- "json" --> P["Serialize ProposalReviewReport"]
 
-    O --> Q["Print or write to --out"]
+    O --> Q["Print or write to --out / --out-dir"]
     P --> Q
 ```
 
@@ -152,8 +155,9 @@ sequenceDiagram
 ### `ProposalDoctorConfig`
 
 - `audience`: target reader, default `enterprise buyer`
+- `language`: output language, `en` or `ja`, default `en`
 - `repo`: working directory for Codex
-- `max_parallel`: review concurrency limit
+- `max_parallel`: review concurrency limit, default `10`
 
 ### `LensReview`
 
@@ -176,6 +180,7 @@ sequenceDiagram
 - `source_type`: `file` or `folder`
 - `sources`: reviewed file paths, including files discovered inside a folder
 - `audience`: intended audience
+- `language`: output language used for human-readable review text
 - `overall_assessment`: high-level readiness statement
 - `lens_reviews`: all lens results
 - `priority_fixes`: top fixes to make before sending
