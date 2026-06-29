@@ -4,7 +4,7 @@ import asyncio
 from pathlib import Path
 
 from proposal_doctor.codex_client import review_with_codex
-from proposal_doctor.heuristic import review_with_heuristics
+from proposal_doctor.heuristic import LENS_LABELS, review_with_heuristics
 from proposal_doctor.lenses import DEFAULT_LENSES
 from proposal_doctor.models import LensReview, ProposalDoctorConfig, ProposalReviewReport, ReviewLens
 
@@ -49,7 +49,7 @@ def render_markdown(report: ProposalReviewReport) -> str:
     lines.extend(f"- {fix}" for fix in report.priority_fixes)
 
     for lens in report.lens_reviews:
-        lines.extend(["", f"## {lens.lens.title()} Lens", "", lens.summary, ""])
+        lines.extend(["", f"## {LENS_LABELS[lens.lens]}", "", lens.summary, ""])
         for finding in lens.findings:
             lines.extend(
                 [
@@ -92,7 +92,8 @@ def _overall_assessment(lens_reviews: list[LensReview]) -> str:
 
 def _decision_maker_summary(priority_fixes: list[str]) -> str:
     return (
-        "The proposal should be tightened around buyer urgency, financial proof, legal precision, "
-        "and delivery credibility before it is used in a high-stakes sales motion. Start with the "
+        "The proposal should be tightened around customer value, decision-maker approval logic, "
+        "financial proof, execution risk, and competitive positioning before it is used in a "
+        "high-stakes sales motion. Start with the "
         f"top fix: {priority_fixes[0]}"
     )

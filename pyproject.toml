@@ -1,7 +1,7 @@
 [project]
 name = "proposal-doctor"
 version = "0.1.0"
-description = "A Codex-backed proposal review flow for sales, buyer, finance, legal, and delivery perspectives."
+description = "A Codex-backed proposal review flow for customer, decision-maker, finance, execution-risk, and competitive perspectives."
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 license = { text = "MIT" }

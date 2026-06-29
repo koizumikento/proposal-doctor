@@ -63,11 +63,11 @@ review flow diagrams.
 
 The default flow reviews the proposal through five lenses:
 
-- buyer: whether the proposal is clear and compelling to the customer
-- executive: whether the decision case is crisp enough for approval
-- finance: whether ROI, pricing, and assumptions are defensible
-- legal: whether commitments, scope, and risk language need tightening
-- delivery: whether implementation, ownership, and timeline are credible
+- customer: 顧客視点で、課題、導入価値、緊急度、信頼性を見る
+- decision_maker: 決裁者視点で、承認判断、事業価値、意思決定材料を見る
+- finance: 財務視点で、価格、ROI、予算前提、測定方法を見る
+- execution_risk: 実行リスク視点で、体制、責任分界、スケジュール、依存関係を見る
+- competitive: 競合比較視点で、代替案との差別化、比較軸、勝ち筋を見る
 
 ## Status
 

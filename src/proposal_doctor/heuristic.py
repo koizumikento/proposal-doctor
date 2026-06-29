@@ -3,11 +3,20 @@ from __future__ import annotations
 from proposal_doctor.models import LensName, LensReview, ReviewFinding, ReviewLens
 
 
+LENS_LABELS: dict[LensName, str] = {
+    "customer": "顧客視点",
+    "decision_maker": "決裁者視点",
+    "finance": "財務視点",
+    "execution_risk": "実行リスク視点",
+    "competitive": "競合比較視点",
+}
+
+
 def review_with_heuristics(text: str, audience: str, lens: ReviewLens) -> LensReview:
     findings: list[ReviewFinding] = []
     lower = text.lower()
 
-    if lens.name in {"buyer", "executive"} and not any(
+    if lens.name in {"customer", "decision_maker"} and not any(
         marker in lower for marker in ("problem", "challenge", "pain", "goal")
     ):
         findings.append(
@@ -33,18 +42,7 @@ def review_with_heuristics(text: str, audience: str, lens: ReviewLens) -> LensRe
             )
         )
 
-    if lens.name == "legal" and any(marker in lower for marker in ("guarantee", "always", "never")):
-        findings.append(
-            _finding(
-                lens.name,
-                "medium",
-                "Absolute language may create avoidable risk",
-                "Strong guarantees can be hard to defend unless backed by contract terms.",
-                "Replace absolute claims with scoped commitments, assumptions, and exclusions.",
-            )
-        )
-
-    if lens.name == "delivery" and not any(
+    if lens.name == "execution_risk" and not any(
         marker in lower for marker in ("timeline", "milestone", "owner", "implementation")
     ):
         findings.append(
@@ -57,20 +55,33 @@ def review_with_heuristics(text: str, audience: str, lens: ReviewLens) -> LensRe
             )
         )
 
+    if lens.name == "competitive" and not any(
+        marker in lower for marker in ("competitor", "alternative", "different", "compare", "versus")
+    ):
+        findings.append(
+            _finding(
+                lens.name,
+                "medium",
+                "Competitive positioning is unclear",
+                "The proposal does not explain why this option should win against alternatives.",
+                "Add the customer's likely alternatives, comparison criteria, and specific differentiators.",
+            )
+        )
+
     if not findings:
         findings.append(
             _finding(
                 lens.name,
                 "low",
                 "No obvious blocker found by heuristic review",
-                f"The draft has enough surface detail for a first-pass {lens.name} review.",
+                f"The draft has enough surface detail for a first-pass {LENS_LABELS[lens.name]} review.",
                 "Use Codex review for deeper document-specific critique before sending.",
             )
         )
 
     return LensReview(
         lens=lens.name,
-        summary=f"{lens.name.title()} review for {audience}.",
+        summary=f"{LENS_LABELS[lens.name]}レビュー for {audience}.",
         findings=findings,
         questions=_questions_for_lens(lens.name),
     )
@@ -94,9 +105,12 @@ def _finding(
 
 def _questions_for_lens(lens: LensName) -> list[str]:
     return {
-        "buyer": ["Why should this customer act now?", "What alternative are they comparing against?"],
-        "executive": ["What one metric justifies approval?", "What decision is being requested?"],
+        "customer": ["Why should this customer act now?", "What customer pain is most urgent?"],
+        "decision_maker": ["What one metric justifies approval?", "What decision is being requested?"],
         "finance": ["Which assumptions drive the business case?", "How will impact be measured?"],
-        "legal": ["Which commitments need contractual precision?", "What exclusions are missing?"],
-        "delivery": ["Who owns each milestone?", "What dependencies could delay delivery?"],
+        "execution_risk": ["Who owns each milestone?", "What dependencies could delay delivery?"],
+        "competitive": [
+            "Which alternatives will the customer compare against?",
+            "What is the clearest reason to choose this proposal?",
+        ],
     }[lens]

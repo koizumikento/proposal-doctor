@@ -69,11 +69,11 @@ Proposal Doctor uses five default lenses.
 
 | Lens | Purpose |
 | --- | --- |
-| `buyer` | Checks customer clarity, urgency, differentiation, and trust. |
-| `executive` | Checks approval readiness and decision-maker framing. |
-| `finance` | Checks ROI, pricing, budget assumptions, and measurement. |
-| `legal` | Checks ambiguity, risky commitments, and scope language. |
-| `delivery` | Checks implementation credibility, ownership, and milestones. |
+| `customer` | 顧客視点。課題、導入価値、緊急度、信頼性を確認する。 |
+| `decision_maker` | 決裁者視点。承認判断、事業価値、リスク、意思決定材料を確認する。 |
+| `finance` | 財務視点。価格、ROI、予算前提、回収期間、測定方法を確認する。 |
+| `execution_risk` | 実行リスク視点。体制、責任分界、スケジュール、依存関係を確認する。 |
+| `competitive` | 競合比較視点。代替案との差別化、比較軸、勝ち筋を確認する。 |
 
 ## Execution Flow
 

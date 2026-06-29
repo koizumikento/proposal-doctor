@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-LensName = Literal["buyer", "executive", "finance", "legal", "delivery"]
+LensName = Literal["customer", "decision_maker", "finance", "execution_risk", "competitive"]
 Severity = Literal["low", "medium", "high"]
 
 
