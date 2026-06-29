@@ -1,0 +1,40 @@
+[project]
+name = "proposal-doctor"
+version = "0.1.0"
+description = "A Codex-backed proposal review flow for sales, buyer, finance, legal, and delivery perspectives."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = { text = "MIT" }
+authors = [{ name = "koizumikento" }]
+dependencies = [
+  "mcp>=1.0.0",
+  "openai-codex>=0.1.0b3,<0.2",
+  "pydantic>=2.7",
+  "pydantic-graph>=0.1.0",
+  "rich>=13.7",
+  "typer>=0.12",
+]
+
+[project.scripts]
+proposal-doctor = "proposal_doctor.cli:app"
+proposal-doctor-mcp = "proposal_doctor.mcp_server:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.uv]
+prerelease = "allow"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,45 @@
+from __future__ import annotations
+
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+
+LensName = Literal["buyer", "executive", "finance", "legal", "delivery"]
+Severity = Literal["low", "medium", "high"]
+
+
+class ReviewLens(BaseModel):
+    name: LensName
+    prompt: str
+
+
+class ReviewFinding(BaseModel):
+    lens: LensName
+    severity: Severity
+    title: str
+    rationale: str
+    recommendation: str
+
+
+class LensReview(BaseModel):
+    lens: LensName
+    summary: str
+    findings: list[ReviewFinding] = Field(default_factory=list)
+    questions: list[str] = Field(default_factory=list)
+
+
+class ProposalReviewReport(BaseModel):
+    source: str
+    audience: str
+    overall_assessment: str
+    lens_reviews: list[LensReview]
+    priority_fixes: list[str]
+    decision_maker_summary: str
+
+
+class ProposalDoctorConfig(BaseModel):
+    audience: str = "enterprise buyer"
+    use_codex: bool = False
+    repo: str = "."
+    max_parallel: int = 5
