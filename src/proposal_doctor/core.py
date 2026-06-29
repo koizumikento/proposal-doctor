@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from proposal_doctor.codex_client import review_with_codex
+from proposal_doctor.codex_client import review_lenses_with_codex
 from proposal_doctor.heuristic import LENS_LABELS, review_with_heuristics
 from proposal_doctor.lenses import DEFAULT_LENSES
 from proposal_doctor.models import LensReview, ProposalDoctorConfig, ProposalReviewReport, ReviewLens
@@ -11,15 +11,17 @@ from proposal_doctor.models import LensReview, ProposalDoctorConfig, ProposalRev
 
 async def review_proposal(path: Path, config: ProposalDoctorConfig) -> ProposalReviewReport:
     text = path.read_text(encoding="utf-8")
-    semaphore = asyncio.Semaphore(config.max_parallel)
+    if config.use_codex:
+        lens_reviews = await review_lenses_with_codex(
+            text=text,
+            audience=config.audience,
+            lenses=DEFAULT_LENSES,
+            repo=config.repo,
+            max_parallel=config.max_parallel,
+        )
+    else:
+        lens_reviews = await _review_lenses_with_heuristics(text, config)
 
-    async def run_lens(lens: ReviewLens) -> LensReview:
-        async with semaphore:
-            if config.use_codex:
-                return await review_with_codex(text, config.audience, lens, config.repo)
-            return review_with_heuristics(text, config.audience, lens)
-
-    lens_reviews = await asyncio.gather(*(run_lens(lens) for lens in DEFAULT_LENSES))
     priority_fixes = _priority_fixes(lens_reviews)
 
     return ProposalReviewReport(
@@ -30,6 +32,19 @@ async def review_proposal(path: Path, config: ProposalDoctorConfig) -> ProposalR
         priority_fixes=priority_fixes,
         decision_maker_summary=_decision_maker_summary(priority_fixes),
     )
+
+
+async def _review_lenses_with_heuristics(
+    text: str,
+    config: ProposalDoctorConfig,
+) -> list[LensReview]:
+    semaphore = asyncio.Semaphore(config.max_parallel)
+
+    async def run_lens(lens: ReviewLens) -> LensReview:
+        async with semaphore:
+            return review_with_heuristics(text, config.audience, lens)
+
+    return list(await asyncio.gather(*(run_lens(lens) for lens in DEFAULT_LENSES)))
 
 
 def render_markdown(report: ProposalReviewReport) -> str:

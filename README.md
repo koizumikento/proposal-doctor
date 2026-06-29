@@ -7,7 +7,7 @@ It is designed as a thin flow layer around Codex SDK:
 
 - run locally with `uvx`
 - expose the same flow as an MCP tool
-- optionally ask Codex to review each lens in parallel
+- optionally ask Codex SDK to review each lens in parallel
 - emit Markdown or JSON that can be pasted into a proposal workflow
 
 ## Install

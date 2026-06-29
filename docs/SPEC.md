@@ -112,10 +112,11 @@ sequenceDiagram
     participant SDK as Codex SDK
     participant Codex as Local Codex Runtime
 
-    Flow->>SDK: Start read-only Codex thread
-    SDK->>Codex: thread_start(sandbox=read_only)
-    Flow->>SDK: run(lens-specific prompt)
-    SDK->>Codex: Execute proposal review
+    Flow->>SDK: Open one AsyncCodex session
+    Flow->>SDK: Start read-only ephemeral thread per lens
+    SDK->>Codex: thread_start(sandbox=read_only, cwd=repo)
+    Flow->>SDK: Run lens-specific prompts concurrently
+    SDK->>Codex: Execute parallel proposal reviews
     Codex-->>SDK: final_response
     SDK-->>Flow: Review JSON or fallback text
     Flow->>Flow: Validate as LensReview
@@ -174,7 +175,9 @@ Limitations:
 
 ### Codex Mode
 
-Enabled with `--use-codex`. Each lens asks Codex SDK for a structured review.
+Enabled with `--use-codex`. Proposal Doctor opens one Codex SDK session, starts
+a read-only ephemeral thread for each review lens, and runs those lens reviews
+concurrently up to `max_parallel`.
 
 Strengths:
 
@@ -193,9 +196,13 @@ Limitations:
 Proposal Doctor treats each review lens as an independent task. The flow can run
 lens reviews concurrently and join the results into one report.
 
-The current implementation uses `asyncio.gather` with a semaphore. A future
-implementation can move the same shape into Pydantic Graph `map()` and `join()`
-nodes once the flow needs richer state transitions, retries, or partial results.
+The current implementation uses `asyncio.gather` with a semaphore. In Codex mode,
+the gathered tasks call Codex SDK and each task owns one lens-specific Codex
+thread. In heuristic mode, the same concurrency boundary runs local checks.
+
+A future implementation can move the same shape into Pydantic Graph `map()` and
+`join()` nodes once the flow needs richer state transitions, retries, or partial
+results.
 
 ## Package Shape
 
