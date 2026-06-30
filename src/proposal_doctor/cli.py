@@ -33,6 +33,13 @@ def review(
     output_format: Annotated[Literal["markdown", "json"], typer.Option("--format")] = "markdown",
     repo: Annotated[Path, typer.Option("--repo")] = Path("."),
     max_parallel: Annotated[int, typer.Option("--max-parallel")] = 10,
+    codex_config: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--codex-config",
+            help="Codex runtime override in TOML key=value form. Can be passed multiple times.",
+        ),
+    ] = None,
 ) -> None:
     """Review a proposal file or folder and print a prioritized improvement report."""
     if out and out_dir:
@@ -44,6 +51,7 @@ def review(
         web_search=web_search,
         repo=str(repo),
         max_parallel=max_parallel,
+        codex_config_overrides=tuple(codex_config or ()),
     )
     try:
         report = asyncio.run(review_proposal(proposal, config))

@@ -1,8 +1,16 @@
 import asyncio
+import sys
+from types import SimpleNamespace
 
 import pytest
 
-from proposal_doctor.codex_client import _build_prompt, _review_with_codex_client, _web_search_mode
+from proposal_doctor.codex_client import (
+    DEFAULT_CODEX_CONFIG_OVERRIDES,
+    _build_prompt,
+    _review_with_codex_client,
+    _web_search_mode,
+    review_lenses_with_codex,
+)
 from proposal_doctor.cli import _output_path_for_dir
 from proposal_doctor.core import render_markdown, review_proposal
 from proposal_doctor.lenses import DEFAULT_LENSES
@@ -58,6 +66,33 @@ def test_review_proposal_accepts_folder(tmp_path, monkeypatch) -> None:
     assert captured["source_type"] == "folder"
     assert captured["lenses"] == DEFAULT_LENSES
     assert captured["web_search"] == "lens"
+    assert captured["codex_config_overrides"] == ()
+
+
+def test_review_proposal_passes_codex_config_overrides(tmp_path, monkeypatch) -> None:
+    proposal = tmp_path / "proposal.md"
+    proposal.write_text("Proposal", encoding="utf-8")
+    captured = {}
+
+    async def fake_review_lenses_with_codex(**kwargs):
+        captured.update(kwargs)
+        return _stub_lens_reviews()
+
+    monkeypatch.setattr(
+        "proposal_doctor.core.review_lenses_with_codex",
+        fake_review_lenses_with_codex,
+    )
+
+    asyncio.run(
+        review_proposal(
+            proposal,
+            ProposalDoctorConfig(
+                codex_config_overrides=("stream_idle_timeout_ms=900000",)
+            ),
+        )
+    )
+
+    assert captured["codex_config_overrides"] == ("stream_idle_timeout_ms=900000",)
 
 
 def test_review_proposal_rejects_folder_without_supported_files(tmp_path) -> None:
@@ -220,6 +255,71 @@ def test_codex_thread_receives_lens_web_search_mode(tmp_path) -> None:
     assert captured["thread_start"]["config"] == {"web_search": "live"}
     assert "Web search: live is explicitly allowed" in captured["prompt"]
     assert "external_sources" in captured["output_schema"]["properties"]
+
+
+def test_codex_config_overrides_are_passed_to_sdk(tmp_path, monkeypatch) -> None:
+    proposal = tmp_path / "proposal.md"
+    proposal.write_text("Draft", encoding="utf-8")
+    captured = {}
+
+    class FakeCodexConfig:
+        def __init__(self, config_overrides=()):
+            self.config_overrides = config_overrides
+
+    class FakeSandbox:
+        read_only = "read_only"
+
+    class FakeResult:
+        final_response = (
+            '{"lens":"customer","summary":"ok","findings":[],"questions":[],'
+            '"external_sources":[]}'
+        )
+
+    class FakeThread:
+        async def run(self, prompt, output_schema):
+            return FakeResult()
+
+    class FakeAsyncCodex:
+        def __init__(self, config=None):
+            captured["sdk_config"] = config
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return None
+
+        async def thread_start(self, **kwargs):
+            return FakeThread()
+
+    monkeypatch.setitem(
+        sys.modules,
+        "openai_codex",
+        SimpleNamespace(
+            AsyncCodex=FakeAsyncCodex,
+            CodexConfig=FakeCodexConfig,
+            Sandbox=FakeSandbox,
+        ),
+    )
+
+    asyncio.run(
+        review_lenses_with_codex(
+            proposal_path=proposal,
+            source_type="file",
+            audience="enterprise CFO",
+            language="en",
+            web_search="disabled",
+            lenses=(DEFAULT_LENSES[0],),
+            repo=".",
+            max_parallel=1,
+            codex_config_overrides=("stream_idle_timeout_ms=900000",),
+        )
+    )
+
+    assert captured["sdk_config"].config_overrides == (
+        *DEFAULT_CODEX_CONFIG_OVERRIDES,
+        "stream_idle_timeout_ms=900000",
+    )
 
 
 def test_markdown_renders_external_sources() -> None:

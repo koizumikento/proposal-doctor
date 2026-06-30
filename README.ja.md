@@ -61,6 +61,20 @@ Codex の作業ディレクトリを指定:
 proposal-doctor review proposal.md --repo .
 ```
 
+Proposal Doctor は stream idle timeout の既定値として、次の Codex runtime
+override を渡します:
+
+```bash
+stream_idle_timeout_ms=600000
+```
+
+追加の Codex runtime 設定は、`codex --config` と同じ TOML `key=value` 形式で
+渡せます。後ろに渡した設定が優先されるため、既定 timeout の差し替えにも使えます:
+
+```bash
+proposal-doctor review proposal.md --codex-config stream_idle_timeout_ms=900000
+```
+
 Codex-backed review では、顧客価値、決裁者承認、財務根拠、実行リスク、
 競合比較、調達要件適合、ステークホルダー定着、技術実現性、商務条件
 リスク、ストーリー整合性について詳細な rubric を使います。
@@ -80,7 +94,8 @@ proposal-doctor-mcp
 MCP server は、単一ファイル向けの `review_proposal_file`、フォルダ向けの
 `review_proposal_folder`、ファイル/フォルダ両対応の `review_proposal_path`
 を公開します。各 MCP tool は `language` に `en` または `ja`、`web_search` に
-`lens`, `disabled`, `cached`, `live` を指定できます。フォルダレビューでは
+`lens`, `disabled`, `cached`, `live` を指定できます。Codex runtime の上書きは
+`codex_config_overrides` に `key=value` 形式のリストで渡します。フォルダレビューでは
 `.md`, `.markdown`, `.txt` を再帰的に読み、隠しファイルと隠しフォルダは無視します。
 
 ## 仕様

@@ -47,6 +47,7 @@ proposal-doctor review proposal.md --format json
 proposal-doctor review proposal.md --out review.md
 proposal-doctor review proposal.md --out-dir .work
 proposal-doctor review proposal.md --repo .
+proposal-doctor review proposal.md --codex-config stream_idle_timeout_ms=900000
 ```
 
 ### MCP
@@ -65,6 +66,7 @@ Inputs:
 - `web_search`: web search policy, `lens`, `disabled`, `cached`, or `live`
 - `repo`: local working directory used by Codex
 - `max_parallel`: maximum concurrent lens reviews, default `10`
+- `codex_config_overrides`: optional Codex runtime `key=value` overrides
 
 Output:
 
@@ -187,6 +189,8 @@ sequenceDiagram
 - `web_search`: web search policy, default `lens`
 - `repo`: working directory for Codex
 - `max_parallel`: review concurrency limit, default `10`
+- `codex_config_overrides`: Codex runtime overrides passed through to the SDK,
+  after the default `stream_idle_timeout_ms=600000` override
 
 ### `LensReview`
 

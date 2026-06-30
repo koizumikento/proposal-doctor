@@ -18,11 +18,20 @@ async def review_proposal_file(
     web_search: WebSearchSetting = "lens",
     repo: str = ".",
     max_parallel: int = 10,
+    codex_config_overrides: list[str] | None = None,
 ) -> dict:
     """Review a local proposal file through business lenses."""
     if not Path(path).is_file():
         raise ValueError(f"Proposal path is not a file: {path}")
-    return await _review_path(path, audience, language, web_search, repo, max_parallel)
+    return await _review_path(
+        path,
+        audience,
+        language,
+        web_search,
+        repo,
+        max_parallel,
+        codex_config_overrides,
+    )
 
 
 @mcp.tool()
@@ -33,9 +42,18 @@ async def review_proposal_path(
     web_search: WebSearchSetting = "lens",
     repo: str = ".",
     max_parallel: int = 10,
+    codex_config_overrides: list[str] | None = None,
 ) -> dict:
     """Review a local proposal file or folder through business lenses."""
-    return await _review_path(path, audience, language, web_search, repo, max_parallel)
+    return await _review_path(
+        path,
+        audience,
+        language,
+        web_search,
+        repo,
+        max_parallel,
+        codex_config_overrides,
+    )
 
 
 @mcp.tool()
@@ -46,11 +64,20 @@ async def review_proposal_folder(
     web_search: WebSearchSetting = "lens",
     repo: str = ".",
     max_parallel: int = 10,
+    codex_config_overrides: list[str] | None = None,
 ) -> dict:
     """Review a local folder of proposal files through business lenses."""
     if not Path(path).is_dir():
         raise ValueError(f"Proposal path is not a folder: {path}")
-    return await _review_path(path, audience, language, web_search, repo, max_parallel)
+    return await _review_path(
+        path,
+        audience,
+        language,
+        web_search,
+        repo,
+        max_parallel,
+        codex_config_overrides,
+    )
 
 
 async def _review_path(
@@ -60,6 +87,7 @@ async def _review_path(
     web_search: WebSearchSetting,
     repo: str,
     max_parallel: int,
+    codex_config_overrides: list[str] | None,
 ) -> dict:
     report = await review_proposal(
         Path(path),
@@ -69,6 +97,7 @@ async def _review_path(
             web_search=web_search,
             repo=repo,
             max_parallel=max_parallel,
+            codex_config_overrides=tuple(codex_config_overrides or ()),
         ),
     )
     return report.model_dump()

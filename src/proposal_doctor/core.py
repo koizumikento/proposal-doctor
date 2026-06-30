@@ -26,6 +26,7 @@ async def review_proposal(path: Path, config: ProposalDoctorConfig) -> ProposalR
         lenses=DEFAULT_LENSES,
         repo=config.repo,
         max_parallel=config.max_parallel,
+        codex_config_overrides=config.codex_config_overrides,
     )
 
     priority_fixes = _priority_fixes(lens_reviews)

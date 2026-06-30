@@ -70,3 +70,4 @@ class ProposalDoctorConfig(BaseModel):
     web_search: WebSearchSetting = "lens"
     repo: str = "."
     max_parallel: int = 10
+    codex_config_overrides: tuple[str, ...] = ()

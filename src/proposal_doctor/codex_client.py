@@ -30,6 +30,10 @@ LENS_WEB_SEARCH_MODES: dict[LensName, WebSearchMode] = {
     "narrative_coherence": "disabled",
 }
 
+DEFAULT_CODEX_CONFIG_OVERRIDES = (
+    "stream_idle_timeout_ms=600000",
+)
+
 
 REVIEW_PROTOCOL = """Review protocol:
 - Inspect the proposal path before judging. Do not rely only on filenames.
@@ -66,6 +70,7 @@ async def review_lenses_with_codex(
     lenses: tuple[ReviewLens, ...],
     repo: str,
     max_parallel: int,
+    codex_config_overrides: tuple[str, ...] = (),
 ) -> list[LensReview]:
     try:
         from openai_codex import AsyncCodex
@@ -74,7 +79,7 @@ async def review_lenses_with_codex(
 
     semaphore = asyncio.Semaphore(max_parallel)
 
-    async with AsyncCodex() as codex:
+    async with AsyncCodex(config=_codex_config(codex_config_overrides)) as codex:
 
         async def run_lens(lens: ReviewLens) -> LensReview:
             async with semaphore:
@@ -100,13 +105,14 @@ async def review_with_codex(
     repo: str,
     language: OutputLanguage = "en",
     web_search: WebSearchSetting = "lens",
+    codex_config_overrides: tuple[str, ...] = (),
 ) -> LensReview:
     try:
         from openai_codex import AsyncCodex, Sandbox
     except ImportError as exc:
         raise RuntimeError("openai-codex is required to review proposals") from exc
 
-    async with AsyncCodex() as codex:
+    async with AsyncCodex(config=_codex_config(codex_config_overrides)) as codex:
         return await _review_with_codex_client(
             codex=codex,
             proposal_path=proposal_path,
@@ -162,6 +168,19 @@ async def _review_with_codex_client(
             questions=[raw],
             external_sources=[],
         )
+
+
+def _effective_config_overrides(codex_config_overrides: tuple[str, ...]) -> tuple[str, ...]:
+    return (
+        *DEFAULT_CODEX_CONFIG_OVERRIDES,
+        *codex_config_overrides,
+    )
+
+
+def _codex_config(codex_config_overrides: tuple[str, ...]) -> Any:
+    from openai_codex import CodexConfig
+
+    return CodexConfig(config_overrides=_effective_config_overrides(codex_config_overrides))
 
 
 def _build_prompt(

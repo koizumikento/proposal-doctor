@@ -63,6 +63,21 @@ Set the Codex working directory:
 proposal-doctor review proposal.md --repo .
 ```
 
+Proposal Doctor passes a default 10 minute stream idle timeout override to
+Codex:
+
+```bash
+stream_idle_timeout_ms=600000
+```
+
+You can pass additional Codex runtime config overrides using the same
+`key=value` TOML syntax as `codex --config`. Later overrides win, so this can
+also replace the default timeout:
+
+```bash
+proposal-doctor review proposal.md --codex-config stream_idle_timeout_ms=900000
+```
+
 Codex-backed reviews use detailed rubrics for customer value, decision-maker
 approval, financial proof, execution risk, competitive positioning, procurement
 compliance, stakeholder adoption, technical feasibility, commercial terms risk,
@@ -83,9 +98,10 @@ proposal-doctor-mcp
 The MCP server exposes `review_proposal_file` for single files,
 `review_proposal_folder` for folders, and `review_proposal_path` for either.
 Each MCP review tool accepts `language` as `en` or `ja` and `web_search` as
-`lens`, `disabled`, `cached`, or `live`. Folder reviews include `.md`,
-`.markdown`, and `.txt` files recursively while ignoring hidden files and hidden
-folders.
+`lens`, `disabled`, `cached`, or `live`. The tools also accept
+`codex_config_overrides`, a list of Codex runtime `key=value` overrides. Folder
+reviews include `.md`, `.markdown`, and `.txt` files recursively while ignoring
+hidden files and hidden folders.
 
 ## Specification
 
