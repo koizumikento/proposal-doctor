@@ -8,7 +8,7 @@ license = { text = "MIT" }
 authors = [{ name = "koizumikento" }]
 dependencies = [
   "mcp>=1.0.0,<2.0.0a0",
-  "openai-codex>=0.1.0b3,<0.2",
+  "openai-codex>=0.144.4,<1",
   "pydantic>=2.7",
   "pydantic-graph>=0.1.0",
   "rich>=13.7",
