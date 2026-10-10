@@ -153,7 +153,8 @@ def test_operational_failure_is_sanitized(backend, monkeypatch):
 def test_transport_errors(backend):
     client, _, captured = backend
     assert client.get("/mcp", headers=HEADERS).status_code == 405
-    assert client.post("/mcp", content="x" * 16385, headers=HEADERS).status_code == 413
+    assert client.post("/mcp", content="x" * 16385,
+                       headers={**HEADERS, "Content-Type": "application/json"}).status_code == 413
     assert client.post("/mcp", json=[], headers=HEADERS).status_code == 400
     assert client.post("/mcp", content="{bad", headers=HEADERS).status_code == 400
     assert rpc(client, "tools/list", headers={**HEADERS,
@@ -285,6 +286,19 @@ def test_official_mcp_client_over_loopback_http(backend):
             time.sleep(0.01)
         assert server.started
         asyncio.run(exercise())
+        import subprocess
+        from pathlib import Path
+
+        flow = Path(__file__).resolve().parents[1] / "sites/tests/backend-flow.mjs"
+        node = subprocess.run(["node", str(flow), f"http://127.0.0.1:{port}/mcp"],
+                              capture_output=True, text=True, timeout=15, check=True)
+        assert "all three tool calls passed" in node.stdout
+        modern_flow = Path(__file__).with_name("modern_client.py")
+        modern = subprocess.run(["uv", "run", "--offline", "--script", str(modern_flow),
+                                 f"http://127.0.0.1:{port}/mcp"],
+                                capture_output=True, text=True, timeout=30)
+        assert modern.returncode == 0, modern.stdout + modern.stderr
+        assert "SDK 2.3 discovery/list/call passed" in modern.stdout
     finally:
         server.should_exit = True
         thread.join(timeout=5)
