@@ -13,13 +13,19 @@ from functools import wraps
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
-from mcp.server.transport_security import TransportSecuritySettings
+from mcp.server.transport_security import TransportSecurityMiddleware, TransportSecuritySettings
 from mcp.types import JSONRPCMessage, JSONRPCRequest, ToolAnnotations
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from proposal_doctor import mcp_server
+from proposal_doctor.http_protocol import (
+    SUPPORTED_VERSIONS,
+    complete_result,
+    modern_response_sender,
+    validate_modern_request,
+)
 from proposal_doctor.models import OutputLanguage, WebSearchSetting
 
 MAX_REQUEST_BYTES = 16384
@@ -139,6 +145,7 @@ def create_app(settings: BackendSettings, token: str):
                  mcp_server.review_proposal_path):
         register(tool)
     app = server.streamable_http_app()
+    transport_security = TransportSecurityMiddleware(server.settings.transport_security)
 
     async def authenticated_app(scope, receive, send):
         if scope["type"] != "http":
@@ -162,6 +169,13 @@ def create_app(settings: BackendSettings, token: str):
         if request.method != "POST":
             return await JSONResponse({"error": "Use POST"}, 405,
                                       headers={"Allow": "POST"})(scope, receive, send)
+        transport_error = await transport_security.validate_request(request, is_post=True)
+        if transport_error:
+            return await transport_error(scope, receive, send)
+        accepted = {part.strip().split(";")[0] for part in headers.get("accept", "").split(",")}
+        if not {"application/json", "text/event-stream"} <= accepted:
+            return await JSONResponse({"error": "Accept JSON and event-stream"}, 406)(
+                scope, receive, send)
         body = b""
         while True:
             message = await receive()
@@ -178,6 +192,21 @@ def create_app(settings: BackendSettings, token: str):
         except (ValueError, UnicodeDecodeError):
             return await JSONResponse({"error": "Expected one JSON-RPC object"}, 400)(
                 scope, receive, send)
+        modern, protocol_error = validate_modern_request(payload, headers)
+        if protocol_error:
+            return await protocol_error(scope, receive, send)
+        if modern:
+            if isinstance(message, JSONRPCRequest) and message.method == "server/discover":
+                return await JSONResponse({"jsonrpc": "2.0", "id": message.id,
+                    "result": complete_result({"supportedVersions": SUPPORTED_VERSIONS,
+                                               "capabilities": {"tools": {}}})})(
+                    scope, receive, send)
+            # The library and stdio retain SDK v1; this HTTP boundary owns modern envelopes.
+            scope = {**scope, "headers": [
+                (key, value) for key, value in scope["headers"]
+                if key.lower() != b"mcp-protocol-version"
+            ] + [(b"mcp-protocol-version", b"2025-11-25")]}
+            send = modern_response_sender(send)
         if isinstance(message, JSONRPCRequest) and message.method == "tools/call":
             params = payload.get("params")
             arguments = params.get("arguments", {}) if isinstance(params, dict) else {}

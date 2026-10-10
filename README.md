@@ -114,6 +114,8 @@ keep their existing path/options contract.
 
 See [docs/SITES.md](docs/SITES.md) for backend registration, runtime secret names,
 HTTPS/tunnel setup, build/package/deployment steps, and verification boundaries.
+The HTTP boundary supports modern `server/discover` / `2026-07-28` metadata and
+legacy initialize; deploy the matching backend and Worker revisions together.
 
 ## Specification
 

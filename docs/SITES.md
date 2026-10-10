@@ -67,14 +67,45 @@ stdio fixtures, while additional remote restrictions are enforced and described.
 
 Wrong identity or target access returns HTTP 401/403 before execution. Invalid
 tool arguments and review failures use MCP `isError`; runtime exceptions are
-sanitized. Protocol negotiation, discovery and calls are handled by the official
-Python MCP SDK. JSON and SSE responses pass through unchanged. Initialization
+sanitized. Legacy negotiation/calls use the official Python MCP SDK. The HTTP
+boundary adds `2026-07-28` discovery/per-request metadata without changing local
+library/stdio. Modern JSON/SSE results receive `resultType: complete` and
+`_meta['io.modelcontextprotocol/serverInfo']`, preserving report contents and
+heartbeats; legacy envelopes remain unchanged. Initialization
 notifications return empty 202; GET/DELETE receive 405 because this server offers
 no standalone SSE stream or persistent sessions. No `MCP-Session-Id` is created.
 Body size is bounded at 16 KiB at both boundaries. Only one review can run per
 backend process, with a 15 minute overall deadline. A busy error means retry
 after the running review completes. There is no persistent job/replay store;
 repeating a call starts another inference and can incur additional Codex usage.
+
+### Modern HTTP compatibility
+
+`server/discover` returns the actual modern version plus SDK-supported legacy
+versions, `capabilities: {"tools": {}}`, `resultType: "complete"` and server
+identity in `_meta`. Tools and ping are exposed for modern calls; sampling,
+elicitation, subscriptions and MRTR are not advertised. The bridge token and
+permitted Site user are required even for discovery. Discovery/tool listing
+need no API key or Codex inference, making them short keyless live test candidates.
+
+Modern requests carry `params._meta` with
+`io.modelcontextprotocol/protocolVersion: "2026-07-28"` and
+`io.modelcontextprotocol/clientCapabilities: {}` (or declared capabilities).
+`clientInfo` is optional. `MCP-Protocol-Version` and `Mcp-Method` must match the
+body; tools/call also requires matching `Mcp-Name`, including Base64-sentinel
+decoding. The Worker forwards these headers without inventing them. Missing or
+invalid metadata returns HTTP 400 / -32602; header mismatch returns 400 / -32020;
+unknown versions return 400 / -32022 with supported/requested versions; unknown
+modern methods return 404 / -32601.
+
+A bare `server/discover` probe with `params: {}` and no version header (or the
+modern version header) is tolerated only for discovery bootstrap. It receives
+actual supported versions; subsequent modern calls must meet the metadata/header
+contract. Legacy versions still use their existing initialize flow. The HTTP
+boundary internally selects the SDK's legacy `2025-11-25` transport and adds
+modern envelopes per JSON/SSE event. It uses the same registered tools/auth/core.
+Deploy both the updated backend and Worker: an older backend cannot interpret
+server/discover just because the Worker forwards it. No SDK major upgrade is needed.
 
 ## Backend setup
 
@@ -191,15 +222,23 @@ the Codex inference boundary. The real core, all lenses, report models, local
 tool implementations, MCP SDK HTTP transport and authorization run. Worker tests
 mock HTTPS but check headers, identity separation, redirects, body bounds and
 stream preservation. CI runs these checks on Linux, including symlink rejection.
+`tests/test_http_protocol.py` reproduces the unmodified SDK's actual HTTP 200 /
+-32602 discovery failure and checks modern discovery/list/all three calls with
+real SDK results, protocol errors and legacy interoperability. The loopback test
+also launches `sites/tests/backend-flow.mjs`: the actual Worker runs against the
+real backend with only Codex inference stubbed, verifying discovery/tool calls
+rather than an invented discovery response. Split UTF-8 SSE frames and incremental
+heartbeat delivery are checked separately.
 No real Codex login/API call, production data or cloud resources are needed.
 
-Windows local validation: 43 Python tests passed, one symlink test skipped due
-to OS privilege; four Node checks and both package builds passed. This is
+Windows local validation: 56 Python tests passed, one symlink test skipped due
+to OS privilege; five Node checks passed. This is
 local/mock evidence, not Sites dispatch, OAuth or live tunnel acceptance. An
 official MCP ClientSession also initializes, discovers and reviews a synthetic
 folder over an owned loopback HTTP server, which is stopped in a `finally` block.
-CI and final review status are recorded in the PR. Hosted discovery, a deployed
-review, long-running network streaming and live Codex inference remain untested.
+CI and final review status are recorded in the PR. Hosted discovery/calls for this
+source revision, long-running network streaming and live Codex inference remain
+separate acceptance steps.
 Starlette emits an upstream TestClient/httpx deprecation warning; no dependency
 upgrade is included for that warning.
 
@@ -216,6 +255,10 @@ verification resources are created by this workflow.
   Worker archive layout. The implementation follows these local platform docs.
 - [MCP Streamable HTTP, 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
   and [lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle).
+- [Modern discovery](https://modelcontextprotocol.io/specification/2026-07-28/server/discover),
+  [per-request metadata](https://modelcontextprotocol.io/specification/2026-07-28/basic),
+  [version compatibility](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning)
+  and [HTTP validation](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http).
 - [Official Python MCP SDK v1](https://github.com/modelcontextprotocol/python-sdk/tree/v1.x),
   tested at the lockfile's 1.28.1. The remote extra sets this compatible minimum;
   the local base dependency remains unchanged.

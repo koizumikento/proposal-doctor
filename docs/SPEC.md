@@ -83,6 +83,12 @@ must be empty. The backend substitutes its registered workspace and bounded
 operator configuration, verifies Site-user access per target, and reuses the
 existing review functions. The full ten-lens review and provenance are preserved.
 
+The HTTP boundary implements modern `server/discover` and `2026-07-28` per-request
+metadata/header validation, adapting real SDK v1 JSON/SSE results to modern
+`resultType`/server identity envelopes. The Worker forwards the standard routing
+headers. Legacy initialize/stdio and report bodies remain unchanged. Discovery
+and tool listing need no Codex inference, but retain the same authentication.
+
 ```mermaid
 flowchart LR
     Client[MCP client] --> Dispatch[Sites OAuth and identity]

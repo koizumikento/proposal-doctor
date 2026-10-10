@@ -81,3 +81,24 @@ test("missing settings, redirects and upstream exceptions disclose no secrets", 
   globalThis.fetch = async () => { throw new Error(env.PROPOSAL_DOCTOR_BACKEND_TOKEN); };
   assert.deepEqual(await (await worker.fetch(request(), env)).json(), { error: "Backend unavailable" });
 });
+
+test("modern discovery metadata and routing headers reach the real backend boundary", async () => {
+  const payload = { jsonrpc: "2.0", id: "modern", method: "server/discover", params: { _meta: {
+    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+    "io.modelcontextprotocol/clientCapabilities": {},
+  } } };
+  globalThis.fetch = async (_, options) => {
+    assert.equal(options.headers.get("Mcp-Method"), "server/discover");
+    assert.equal(options.headers.get("MCP-Protocol-Version"), "2026-07-28");
+    assert.deepEqual(JSON.parse(new TextDecoder().decode(options.body)), payload);
+    return Response.json({ jsonrpc: "2.0", id: "modern", result: {
+      resultType: "complete", supportedVersions: ["2026-07-28", "2025-11-25"],
+      capabilities: { tools: {} },
+      _meta: { "io.modelcontextprotocol/serverInfo": { name: "proposal-doctor", version: "0.1.0" } },
+    } });
+  };
+  const response = await worker.fetch(request({ headers: { ...headers,
+    "MCP-Protocol-Version": "2026-07-28", "Mcp-Method": "server/discover" },
+    body: JSON.stringify(payload) }), env);
+  assert.deepEqual((await response.json()).result.supportedVersions, ["2026-07-28", "2025-11-25"]);
+});
