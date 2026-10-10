@@ -1,0 +1,8 @@
+# Operator configuration only. Use an existing named tunnel and domain.
+tunnel: REPLACE_WITH_TUNNEL_ID
+credentials-file: REPLACE_WITH_PRIVATE_CREDENTIALS_FILE
+ingress:
+  - hostname: backend.example.com
+    path: ^/mcp$
+    service: http://127.0.0.1:8765
+  - service: http_status:404

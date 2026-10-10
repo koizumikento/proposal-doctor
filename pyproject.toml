@@ -18,11 +18,16 @@ dependencies = [
 [project.scripts]
 proposal-doctor = "proposal_doctor.cli:app"
 proposal-doctor-mcp = "proposal_doctor.mcp_server:main"
+proposal-doctor-backend = "proposal_doctor.remote_server:main"
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0",
   "ruff>=0.6",
+]
+remote = [
+  "mcp>=1.28.1,<2.0.0a0",
+  "uvicorn>=0.30",
 ]
 
 [build-system]

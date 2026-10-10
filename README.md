@@ -103,6 +103,18 @@ Each MCP review tool accepts `language` as `en` or `ja` and `web_search` as
 reviews include `.md`, `.markdown`, and `.txt` files recursively while ignoring
 hidden files and hidden folders.
 
+## Sites deployment
+
+The `sites/` Worker exposes authenticated, stateless `POST /mcp`. It requires a
+separate Python backend with local proposals and Codex authentication; no Codex
+authentication is copied to Sites. The same three review tools and full report
+contract are retained. Remote `path` is a registered target ID, while `repo` and
+runtime overrides are controlled by the backend operator. CLI and local stdio
+keep their existing path/options contract.
+
+See [docs/SITES.md](docs/SITES.md) for backend registration, runtime secret names,
+HTTPS/tunnel setup, build/package/deployment steps, and verification boundaries.
+
 ## Specification
 
 See [docs/SPEC.md](docs/SPEC.md) for the tool specification, including the
