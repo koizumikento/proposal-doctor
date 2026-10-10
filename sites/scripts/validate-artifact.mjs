@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 
 const root = new URL("../", import.meta.url);
+assert.deepEqual((await readdir(new URL("dist/", root))).sort(), [".openai", "server"]);
+assert.deepEqual(await readdir(new URL("dist/server/", root)), ["index.js"]);
+assert.deepEqual(await readdir(new URL("dist/.openai/", root)), ["hosting.json"]);
 const manifest = JSON.parse(await readFile(new URL("dist/.openai/hosting.json", root), "utf8"));
 assert.ok(manifest.capabilities.includes("mcp"));
 assert.ok(!manifest.static);
