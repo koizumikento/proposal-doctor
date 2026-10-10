@@ -44,12 +44,18 @@ async function call(method, params = {}) {
 const discovery = await call("server/discover");
 assert.ok(discovery.supportedVersions.includes("2026-07-28"));
 assert.deepEqual(discovery.capabilities, { tools: {} });
-assert.equal((await call("tools/list")).tools.length, 3);
+assert.equal(discovery.cacheScope, "private");
+assert.equal(discovery.ttlMs, 0);
+const listed = await call("tools/list");
+assert.equal(listed.tools.length, 3);
+assert.equal(listed.cacheScope, "private");
+assert.equal(listed.ttlMs, 0);
 for (const [name, path] of [["review_proposal_file", "draft"],
                            ["review_proposal_folder", "folder"],
                            ["review_proposal_path", "folder"]]) {
   const result = await call("tools/call", { name, arguments: { path, language: "ja" } });
   assert.ok(!result.isError);
+  assert.ok(!("cacheScope" in result) && !("ttlMs" in result));
   const report = JSON.parse(result.content[0].text);
   assert.equal(report.lens_reviews.length, 10);
   assert.equal(report.language, "ja");

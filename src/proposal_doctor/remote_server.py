@@ -199,14 +199,14 @@ def create_app(settings: BackendSettings, token: str):
             if isinstance(message, JSONRPCRequest) and message.method == "server/discover":
                 return await JSONResponse({"jsonrpc": "2.0", "id": message.id,
                     "result": complete_result({"supportedVersions": SUPPORTED_VERSIONS,
-                                               "capabilities": {"tools": {}}})})(
+                                               "capabilities": {"tools": {}}}, cacheable=True)})(
                     scope, receive, send)
             # The library and stdio retain SDK v1; this HTTP boundary owns modern envelopes.
             scope = {**scope, "headers": [
                 (key, value) for key, value in scope["headers"]
                 if key.lower() != b"mcp-protocol-version"
             ] + [(b"mcp-protocol-version", b"2025-11-25")]}
-            send = modern_response_sender(send)
+            send = modern_response_sender(send, cacheable=message.method == "tools/list")
         if isinstance(message, JSONRPCRequest) and message.method == "tools/call":
             params = payload.get("params")
             arguments = params.get("arguments", {}) if isinstance(params, dict) else {}

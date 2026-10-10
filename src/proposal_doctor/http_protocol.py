@@ -15,8 +15,9 @@ VERSION_META = "io.modelcontextprotocol/protocolVersion"
 CAPABILITIES_META = "io.modelcontextprotocol/clientCapabilities"
 
 
-def complete_result(result):
-    return {**result, "resultType": "complete", "_meta": {
+def complete_result(result, *, cacheable=False):
+    return {**result, **({"cacheScope": "private", "ttlMs": 0} if cacheable else {}),
+        "resultType": "complete", "_meta": {
         **result.get("_meta", {}), "io.modelcontextprotocol/serverInfo": SERVER_INFO,
     }}
 
@@ -76,7 +77,7 @@ def validate_modern_request(payload, headers):
     return True, None
 
 
-def modern_response_sender(send):
+def modern_response_sender(send, *, cacheable=False):
     """Adapt real SDK JSON/SSE responses, flushing each event and retaining heartbeats."""
     content_type = ""
     pending = b""
@@ -84,7 +85,7 @@ def modern_response_sender(send):
     def envelope(raw):
         payload = json.loads(raw)
         if isinstance(payload.get("result"), dict):
-            payload["result"] = complete_result(payload["result"])
+            payload["result"] = complete_result(payload["result"], cacheable=cacheable)
         return json.dumps(payload, ensure_ascii=False).encode("utf-8")
 
     async def adapted_send(message):

@@ -48,10 +48,12 @@ def test_discovery_then_real_sdk_list_and_tool_call(backend):
     assert discovery["supportedVersions"] == SUPPORTED_VERSIONS
     assert discovery["capabilities"] == {"tools": {}}
     assert discovery["resultType"] == "complete"
+    assert discovery["cacheScope"] == "private" and discovery["ttlMs"] == 0
     assert discovery["_meta"]["io.modelcontextprotocol/serverInfo"] == SERVER_INFO
     assert captured == []
     listed = result(modern_rpc(client, "tools/list"))["result"]
     assert len(listed["tools"]) == 3 and listed["resultType"] == "complete"
+    assert listed["cacheScope"] == "private" and listed["ttlMs"] == 0
     assert listed["_meta"]["io.modelcontextprotocol/serverInfo"] == SERVER_INFO
     for tool, target in [("review_proposal_file", "draft"),
                          ("review_proposal_folder", "folder"),
@@ -60,6 +62,7 @@ def test_discovery_then_real_sdk_list_and_tool_call(backend):
             "name": tool, "arguments": {"path": target, "language": "ja"},
         }))["result"]
         assert call["resultType"] == "complete" and not call.get("isError")
+        assert "cacheScope" not in call and "ttlMs" not in call
         assert call["_meta"]["io.modelcontextprotocol/serverInfo"] == SERVER_INFO
         report = ProposalReviewReport.model_validate_json(call["content"][0]["text"])
         assert len(report.lens_reviews) == 10 and report.language == "ja"
@@ -139,7 +142,8 @@ def test_real_legacy_sdk_initialize_still_works_after_modern_calls(backend):
     legacy = result(rpc(client, "initialize", {"protocolVersion": "2025-11-25",
         "capabilities": {}, "clientInfo": {"name": "legacy", "version": "1"}}))["result"]
     assert legacy["protocolVersion"] == "2025-11-25" and "resultType" not in legacy
-    assert "resultType" not in result(rpc(client, "tools/list"))["result"]
+    listed = result(rpc(client, "tools/list"))["result"]
+    assert not {"resultType", "cacheScope", "ttlMs"}.intersection(listed)
 
 
 def test_sse_adaptation_handles_split_utf8_frames_and_flushes_heartbeats():
@@ -149,7 +153,7 @@ def test_sse_adaptation_handles_split_utf8_frames_and_flushes_heartbeats():
         sent.append(message)
 
     async def exercise():
-        adapt = modern_response_sender(send)
+        adapt = modern_response_sender(send, cacheable=True)
         await adapt({"type": "http.response.start", "status": 200, "headers": [
             (b"content-type", b"text/event-stream"), (b"content-length", b"10"),
             (b"mcp-session-id", b"legacy-session"),
@@ -168,6 +172,7 @@ def test_sse_adaptation_handles_split_utf8_frames_and_flushes_heartbeats():
         data = next(line[6:] for line in output.splitlines() if line.startswith("data: "))
         shaped = json.loads(data)["result"]
         assert shaped["resultType"] == "complete"
+        assert shaped["cacheScope"] == "private" and shaped["ttlMs"] == 0
         assert shaped["content"][0]["text"] == "日本語" and shaped["_meta"]["fixture"]
         assert dict(sent[0]["headers"]) == {b"content-type": b"text/event-stream"}
 

@@ -88,6 +88,8 @@ metadata/header validation, adapting real SDK v1 JSON/SSE results to modern
 `resultType`/server identity envelopes. The Worker forwards the standard routing
 headers. Legacy initialize/stdio and report bodies remain unchanged. Discovery
 and tool listing need no Codex inference, but retain the same authentication.
+Their modern complete results include `cacheScope: "private"` and `ttlMs: 0`;
+tool call results and legacy envelopes receive no caching hints.
 
 ```mermaid
 flowchart LR

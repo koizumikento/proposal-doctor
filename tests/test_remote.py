@@ -293,6 +293,12 @@ def test_official_mcp_client_over_loopback_http(backend):
         node = subprocess.run(["node", str(flow), f"http://127.0.0.1:{port}/mcp"],
                               capture_output=True, text=True, timeout=15, check=True)
         assert "all three tool calls passed" in node.stdout
+        modern_flow = Path(__file__).with_name("modern_client.py")
+        modern = subprocess.run(["uv", "run", "--offline", "--script", str(modern_flow),
+                                 f"http://127.0.0.1:{port}/mcp"],
+                                capture_output=True, text=True, timeout=30)
+        assert modern.returncode == 0, modern.stdout + modern.stderr
+        assert "SDK 2.3 discovery/list/call passed" in modern.stdout
     finally:
         server.should_exit = True
         thread.join(timeout=5)

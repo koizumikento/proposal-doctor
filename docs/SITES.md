@@ -87,6 +87,10 @@ identity in `_meta`. Tools and ping are exposed for modern calls; sampling,
 elicitation, subscriptions and MRTR are not advertised. The bridge token and
 permitted Site user are required even for discovery. Discovery/tool listing
 need no API key or Codex inference, making them short keyless live test candidates.
+Their complete results include `cacheScope: "private"` and `ttlMs: 0` as required
+by the modern caching specification. These restrict reuse to the authorization
+context and mark results immediately stale; the Worker also sends HTTP
+`Cache-Control: no-store`. Review call results carry no caching hints.
 
 Modern requests carry `params._meta` with
 `io.modelcontextprotocol/protocolVersion: "2026-07-28"` and
@@ -227,7 +231,12 @@ stream preservation. CI runs these checks on Linux, including symlink rejection.
 real SDK results, protocol errors and legacy interoperability. The loopback test
 also launches `sites/tests/backend-flow.mjs`: the actual Worker runs against the
 real backend with only Codex inference stubbed, verifying discovery/tool calls
-rather than an invented discovery response. Split UTF-8 SSE frames and incremental
+rather than an invented discovery response. A pinned SDK 2.3.0 ClientSession in
+an isolated process also discovers, lists and calls the real SDK v1 backend,
+checking explicit private/0 hints. Before pytest, prepare this test dependency
+with `uv run --no-project --with mcp==2.3.0 python -c "import mcp"` (also done in
+CI); the client subprocess runs offline and does not change production dependencies.
+Split UTF-8 SSE frames and incremental
 heartbeat delivery are checked separately.
 No real Codex login/API call, production data or cloud resources are needed.
 
@@ -256,6 +265,7 @@ verification resources are created by this workflow.
 - [MCP Streamable HTTP, 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
   and [lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle).
 - [Modern discovery](https://modelcontextprotocol.io/specification/2026-07-28/server/discover),
+- [Caching hints](https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching),
   [per-request metadata](https://modelcontextprotocol.io/specification/2026-07-28/basic),
   [version compatibility](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning)
   and [HTTP validation](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http).
