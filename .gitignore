@@ -7,3 +7,8 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+.env
+.env.*
+!.env.example
+.openai/local/
+remote-targets.json

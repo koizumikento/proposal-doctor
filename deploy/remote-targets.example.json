@@ -1,0 +1,17 @@
+{
+  "hosts": ["127.0.0.1:8765", "backend.example.com"],
+  "max_parallel": 10,
+  "codex_config_overrides": [],
+  "targets": {
+    "sales-draft": {
+      "workspace": "/srv/proposal-workspace",
+      "path": "draft.md",
+      "users": ["replace-with-site-scoped-user-id"]
+    },
+    "sales-folder": {
+      "workspace": "/srv/proposal-workspace",
+      "path": "proposals",
+      "users": ["replace-with-site-scoped-user-id"]
+    }
+  }
+}

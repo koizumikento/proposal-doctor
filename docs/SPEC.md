@@ -72,6 +72,34 @@ Output:
 
 - JSON-compatible `ProposalReviewReport`
 
+## Sites remote MCP
+
+The local MCP contract above remains unchanged. An additional Sites Worker ESM
+adapter exposes stateless `POST /mcp` through an authenticated Python backend.
+See [SITES.md](SITES.md) for the complete deployment and access contract.
+Remote calls retain all three tool names, argument fields and report models.
+`path` is a registered target ID; `repo` must remain `.` and runtime overrides
+must be empty. The backend substitutes its registered workspace and bounded
+operator configuration, verifies Site-user access per target, and reuses the
+existing review functions. The full ten-lens review and provenance are preserved.
+
+```mermaid
+flowchart LR
+    Client[MCP client] --> Dispatch[Sites OAuth and identity]
+    Dispatch --> Worker[Sites Worker POST /mcp]
+    Worker -->|Fixed HTTPS + service token + user ID| Backend[Python backend]
+    Backend --> Auth[Registered target and user authorization]
+    Auth --> Flow[Existing core.py]
+    Flow --> SDK[Existing codex_client.py on backend host]
+    SDK --> Report[Existing ProposalReviewReport]
+    Report -->|MCP SSE| Worker
+```
+
+The backend is required for Codex runtime/local-file access; Codex credentials
+stay there. MCP identity grants and service credentials are distinct. Discovery
+contains no target data. There is no new filesystem/shell/config forwarding
+tool, storage binding, OAuth implementation, or change to local CLI/stdio.
+
 ## Review Lenses
 
 Proposal Doctor uses ten default lenses.

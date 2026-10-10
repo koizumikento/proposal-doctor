@@ -1,5 +1,15 @@
 # Proposal Doctor
 
+## Sites 対応
+
+`sites/` の Worker は認証付きの stateless `POST /mcp` を提供します。
+ローカル文書と Codex 認証を持つ別の Python backend が必要です。
+Codex 認証を Sites にコピーしません。既存 3 tools・全 10 lenses・report 契約を維持し、
+remote の `path` には登録済み対象 ID を使います。`repo` と runtime override は
+backend 管理者が制限します。CLI とローカル stdio の契約はそのままです。
+
+設定・配備・検証手順は [docs/SITES.md](docs/SITES.md) を参照してください。
+
 Proposal Doctor は、提案書ドラフトを複数のビジネス観点からレビューし、
 優先度付きの改善レポートを返す CLI / MCP ツールです。
 

@@ -375,10 +375,15 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
 ]
+remote = [
+    { name = "mcp" },
+    { name = "uvicorn" },
+]
 
 [package.metadata]
 requires-dist = [
     { name = "mcp", specifier = ">=1.0.0,<2.0.0a0" },
+    { name = "mcp", marker = "extra == 'remote'", specifier = ">=1.28.1,<2.0.0a0" },
     { name = "openai-codex", specifier = ">=0.144.4,<1" },
     { name = "pydantic", specifier = ">=2.7" },
     { name = "pydantic-graph", specifier = ">=0.1.0" },
@@ -386,6 +391,7 @@ requires-dist = [
     { name = "rich", specifier = ">=13.7" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
     { name = "typer", specifier = ">=0.12" },
+    { name = "uvicorn", marker = "extra == 'remote'", specifier = ">=0.30" },
 ]
 
 [[package]]
